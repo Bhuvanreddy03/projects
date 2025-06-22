@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To-Do List</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <style>
+        body {
+            background-color: #f8f9fa;
+            padding: 20px;
+        }
+        .todo-container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .todo-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+        .todo-item:last-child {
+            border-bottom: none;
+        }
+        .completed {
+            text-decoration: line-through;
+            color: #6c757d;
+        }
+        .delete-btn {
+            margin-left: auto;
+        }
+        .todo-input {
+            margin-bottom: 20px;
+        }
+        .deadline {
+            font-size: 0.9em;
+            color: #6c757d;
+            margin-left: 10px;
+        }
+        .overdue {
+            color: #dc3545;
+        }
+        .todo-content {
+            flex-grow: 1;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="todo-container">
+            <h1 class="text-center mb-4">To-Do List</h1>
+            
+            <div class="todo-input">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <input type="text" id="todoInput" class="form-control" placeholder="Add a new task...">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" id="todoDate" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <input type="time" id="todoTime" class="form-control">
+                    </div>
+                    <div class="col-md-1">
+                        <button class="btn btn-primary w-100" id="addTodo">Add</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="todoList">
+                <!-- Todo items will be added here dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Custom JavaScript -->
+    <script>
+        $(document).ready(function() {
+            // Load todos from localStorage
+            let todos = JSON.parse(localStorage.getItem('todos')) || [];
+
+            // Function to save todos to localStorage
+            function saveTodos() {
+                localStorage.setItem('todos', JSON.stringify(todos));
+            }
+
+            // Function to format date and time
+            function formatDeadline(date, time) {
+                if (!date) return '';
+                const deadline = new Date(date + 'T' + (time || '23:59'));
+                return deadline.toLocaleString();
+            }
+
+            // Function to check if deadline is overdue
+            function isOverdue(deadline) {
+                if (!deadline) return false;
+                return new Date(deadline) < new Date();
+            }
+
+            // Function to render todos
+            function renderTodos() {
+                $('#todoList').empty();
+                todos.forEach((todo, index) => {
+                    const deadline = formatDeadline(todo.date, todo.time);
+                    const isOverdueTask = isOverdue(todo.date + 'T' + (todo.time || '23:59'));
+                    
+                    const todoItem = $(`
+                        <div class="todo-item">
+                            <input type="checkbox" class="form-check-input me-2" ${todo.completed ? 'checked' : ''}>
+                            <div class="todo-content">
+                                <span class="todo-text ${todo.completed ? 'completed' : ''}">${todo.text}</span>
+                                ${deadline ? `<span class="deadline ${isOverdueTask && !todo.completed ? 'overdue' : ''}">Deadline: ${deadline}</span>` : ''}
+                            </div>
+                            <button class="btn btn-danger btn-sm delete-btn">Delete</button>
+                        </div>
+                    `);
+
+                    // Toggle completion
+                    todoItem.find('input[type="checkbox"]').on('change', function() {
+                        todos[index].completed = $(this).is(':checked');
+                        todoItem.find('.todo-text').toggleClass('completed');
+                        todoItem.find('.deadline').toggleClass('overdue');
+                        saveTodos();
+                    });
+
+                    // Delete todo
+                    todoItem.find('.delete-btn').on('click', function() {
+                        todos.splice(index, 1);
+                        saveTodos();
+                        renderTodos();
+                    });
+
+                    $('#todoList').append(todoItem);
+                });
+            }
+
+            // Add new todo
+            $('#addTodo').on('click', function() {
+                const todoText = $('#todoInput').val().trim();
+                const todoDate = $('#todoDate').val();
+                const todoTime = $('#todoTime').val();
+
+                if (todoText) {
+                    todos.push({
+                        text: todoText,
+                        date: todoDate,
+                        time: todoTime,
+                        completed: false
+                    });
+                    $('#todoInput').val('');
+                    $('#todoDate').val('');
+                    $('#todoTime').val('');
+                    saveTodos();
+                    renderTodos();
+                }
+            });
+
+            // Add todo on Enter key
+            $('#todoInput').on('keypress', function(e) {
+                if (e.which === 13) {
+                    $('#addTodo').click();
+                }
+            });
+
+            // Set default date to today
+            const today = new Date().toISOString().split('T')[0];
+            $('#todoDate').val(today);
+
+            // Initial render
+            renderTodos();
+        });
+    </script>
+</body>
+</html>
